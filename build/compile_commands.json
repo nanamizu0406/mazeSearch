@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/kaito/program/Search/build",
+  "command": "/usr/bin/c++  -DMACRO1=bar  -std=c++14 -Wall   -I/foo/dir1 -o CMakeFiles/cmake_test.dir/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp.o -c /home/kaito/program/Search/build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp",
+  "file": "/home/kaito/program/Search/build/CMakeFiles/3.10.2/CompilerIdCXX/CMakeCXXCompilerId.cpp"
+}
+]
