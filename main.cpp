@@ -4,11 +4,15 @@
 #include<stack>
 #include<queue>
 #include<chrono>
+#include<thread>
 #include<GL/glut.h>
+
+const unsigned cellSize=20;
 
 void inits();
 void resize(int w, int h);
 void keyboard(unsigned char key, int x, int y);
+void display();
 
 using point=std::pair<unsigned, unsigned>;
 
@@ -62,21 +66,45 @@ public:
 	Search();
 	~Search();
 	void printField() const;
-	int search();
+	void printGlutField() const;
+	void printGlutWall() const;
+	int wightSearch();
+	int heightSearch();
 }search;
 
 int main(int argc, char* argv[]){
-	search.printField();
-		
-	auto start=std::chrono::system_clock::now();
-
-	unsigned num=search.search();
-	std::cout<<num<<std::endl;
 	
-	auto end=std::chrono::system_clock::now(); 
-	double val=std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	glutInit(&argc, argv);
+	glutCreateWindow("search");
+	inits();
+	glutReshapeFunc(resize);
+	glutKeyboardFunc(keyboard);
+	glutDisplayFunc(display);
+	
+	search.printField();
+
+	double val;
+	unsigned num=0;
+	std::chrono::system_clock::time_point  start, end; 
+
+	//幅優先探索
+	start=std::chrono::system_clock::now();
+	num=search.wightSearch();
+	std::cout<<num<<"distance"<<std::endl;
+	end=std::chrono::system_clock::now(); 
+	val=std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	std::cout<<val<<"micro"<<std::endl;
 
+	//深さ優先探索
+	start=std::chrono::system_clock::now();
+	num=search.heightSearch();
+	std::cout<<num<<"distance"<<std::endl;
+	end=std::chrono::system_clock::now(); 
+	val=std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	std::cout<<val<<"micro"<<std::endl;
+
+	glutMainLoop();
+	
 	return 0;
 }
 
@@ -93,12 +121,38 @@ void inits(){
 	glutInitWindowSize(WindowSizeWight, WindowSizeHeight);
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
+}
 
-	snakeInits();
+
+void resize(int w, int h){
+	glViewport(0, 0, w, h);
+	glLoadIdentity();
+	glOrtho(-0.5, (GLdouble)w-0.5, (GLdouble)h-0.1, -0.5, -1.0, 1.0);
+}
+
+void keyboard(unsigned char key, int x, int y){
+	switch(key){
+	case 'q':
+	case 'Q':
+	case '\033':
+		std::exit(0);
+		break;
+	default:
+		break;
+	}
+}
+
+void display(){
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	search.printGlutField();
+	search.printGlutWall();
+	glFlush();
 }
 
 Search::Search(){
 	this->inits();
+	std::cout<<"start("<<this->start.first<<","<<this->start.second<<")"<<std::endl;
+	std::cout<<"goal("<<this->goal.first<<","<<this->goal.second<<")"<<std::endl;
 }
 
 Search::~Search(){
@@ -110,16 +164,14 @@ void Search::inits(){
 	this->start=std::make_pair(1, 1);
 	this->goal=std::make_pair(this->wight()-2, this->height()-2);
 
+	this->memo.clear();
 	this->memo.resize(this->height());
 	std::for_each(this->memo.begin(), this->memo.end(), [this](auto& vec){
 			vec.resize(this->wight());
 		});
 	std::for_each(this->memo.begin(), this->memo.end(), [](auto& vec){
 			std::fill(vec.begin(), vec.end(), 0);
-		});
-	
-	std::cout<<"start("<<this->start.first<<","<<this->start.second<<")"<<std::endl;
-	std::cout<<"goal("<<this->goal.first<<","<<this->goal.second<<")"<<std::endl;
+		});	
 }
 
 unsigned Search::wight()const {
@@ -152,32 +204,94 @@ void Search::printField() const{
 		});
 }
 
-int Search::search(){
-	std::queue<point> q;
+void Search::printGlutField() const{
+	static const unsigned lineSize=1;
 	
+	glColor3f(0.0f, 1.0f, 0.0);
+	glLineWidth(lineSize);
+	glBegin(GL_LINES);
+	
+	for(int i=0;i<=this->wight();i++){
+		glVertex2i(cellSize*i, 0);
+		glVertex2i(cellSize*i, cellSize*this->wight());
+	}
+	for(int j=0;j<=this->height();j++){
+		glVertex2i(0, cellSize*j);
+		glVertex2i(cellSize*this->height(), cellSize*j);
+	}
+	
+	glEnd();
+}
+
+void Search::printGlutWall() const{
+	static const double val=cellSize/2;
+	static const unsigned pointSize=19;
+	
+	glColor3f(0.0f, 0.0f, 0.8f);
+	glPointSize(pointSize);
+	glBegin(GL_POINTS);
+	for(int i=0;i<this->field.size();i++){
+		for(int j=0;j<this->field.at(0).size();j++){
+			if(this->field.at(i).at(j)==WALL)
+				glVertex2d(val+cellSize*j, val+cellSize*i);
+		}
+	}
+	glEnd();
+}
+
+int Search::wightSearch(){
+	//幅優先探索
+	static const double val=cellSize/2;
+	static const unsigned pointSize=19;
+	
+	std::queue<point> q;
 	
 	q.push(this->start);
 	while(!q.empty()){
 		point cur=q.front();		
-		//		std::cout<<"cur("<<cur.first<<","<<cur.second<<")"<<std::endl;
 		q.pop();
 		if(cur==this->goal)
 			return this->memo[cur.first][cur.second];
 		std::for_each(this->dir.begin(), this->dir.end(), [&, this](auto obj){
 				point next=cur+obj;
-				//				std::cout<<"next("<<next.first<<","<<next.second<<")"<<std::endl;
+				if(this->isOutField(next)){
+					const unsigned state=this->field[next.first][next.second];
+					if(state==ROAD){
+						if(this->memo[next.first][next.second]==0){							
+							q.push(next);
+							this->memo[next.first][next.second]=this->memo[cur.first][cur.second]+1;
+						}
+					}
+				}
+			});
+	}	
+	return false;
+}
+
+int Search::heightSearch(){
+	this->inits();
+	//深さ優先探索
+	std::stack<point> s;
+	
+	s.push(this->start);
+	while(!s.empty()){
+		point cur=s.top();		
+		s.pop();
+		if(cur==this->goal)
+			return this->memo[cur.first][cur.second];
+		std::for_each(this->dir.begin(), this->dir.end(), [&, this](auto obj){
+				point next=cur+obj;
 				if(this->isOutField(next)){
 					const unsigned state=this->field[next.first][next.second];
 					if(state==ROAD){
 						if(this->memo[next.first][next.second]==0){
-							q.push(next);
+							s.push(next);
 							this->memo[next.first][next.second]=this->memo[cur.first][cur.second]+1;
 						}
 					}
 				}				
 			});
 	}	
-	return false;
+	return false;	
 }
-
 
