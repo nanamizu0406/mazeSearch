@@ -7,7 +7,6 @@
 #include<thread>
 #include<GL/glut.h>
 
-const unsigned cellSize=20;
 using point=std::pair<unsigned, unsigned>;
 
 point operator+(const point &lhs, const point &rhs)
@@ -48,6 +47,7 @@ private:
 	const std::vector<point> dir={
 		{ -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 },
 	};
+	
 	std::vector<std::vector<unsigned>> memo;
 	point start;
 	point goal;
@@ -72,6 +72,7 @@ int main(int argc, char* argv[]){
 	std::chrono::system_clock::time_point  start, end; 
 
 	//幅優先探索
+	std::cout<<"幅優先探索"<<std::endl;
 	start=std::chrono::system_clock::now();
 	num=search.wightSearch();
 	std::cout<<num<<"distance"<<std::endl;
@@ -80,6 +81,7 @@ int main(int argc, char* argv[]){
 	std::cout<<val<<"micro"<<std::endl;
 
 	//深さ優先探索
+		std::cout<<"深さ優先探索"<<std::endl;
 	start=std::chrono::system_clock::now();
 	num=search.heightSearch();
 	std::cout<<num<<"distance"<<std::endl;
@@ -128,29 +130,37 @@ bool Search::isOutField(const point obj) const {
 }
 
 void Search::printField() const{
-	std::for_each(this->field.begin(), this->field.end(), [](auto& vec){
-			std::for_each(vec.begin(), vec.end(), [](auto& val){
-					switch(val){
-					case ROAD:
-						std::cout<<"　";
-						break;
-					case WALL:
-						std::cout<<"＊";
-						break;
-					default:
-						break;
-					}
-				});
-			std::cout<<std::endl;
-		});
+	point val;
+	
+	for(int i=0;i<this->field.size();i++){
+		for(int j=0;j<this->field.size();j++){
+			val=std::make_pair(j, i);
+			if(val==this->start){
+				std::cout<<"Ｓ";
+				continue;
+			}
+			if(val==this->goal){
+				std::cout<<"Ｇ";
+				continue;
+			}
+			switch(unsigned state=this->field.at(i).at(j)){
+			case ROAD:
+				std::cout<<"　";
+				break;
+			case WALL:
+				std::cout<<"＊";
+				break;
+			default:
+				break;
+			}
+		}
+		std::cout<<std::endl;
+	}
 }
 
-
+//幅優先探索
 int Search::wightSearch(){
-	//幅優先探索
-	static const double val=cellSize/2;
-	static const unsigned pointSize=19;
-	
+	this->inits();
 	std::queue<point> q;
 	
 	q.push(this->start);
@@ -175,9 +185,9 @@ int Search::wightSearch(){
 	return false;
 }
 
+//深さ優先探索
 int Search::heightSearch(){
 	this->inits();
-	//深さ優先探索
 	std::stack<point> s;
 	
 	s.push(this->start);
