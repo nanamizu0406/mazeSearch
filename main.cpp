@@ -6,10 +6,6 @@
 #include<chrono>
 #include<GL/glut.h>
 
-void inits();
-void resize(int w, int h);
-void keyboard(unsigned char key, int x, int y);
-
 using point=std::pair<unsigned, unsigned>;
 
 point operator+(const point &lhs, const point &rhs)
@@ -80,23 +76,6 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-void inits(){
-	static const unsigned WindowSizeWight=800;
-	static const unsigned WindowSizeHeight=800;
-
-	static const unsigned WindowPossitionWight=100;
-	static const unsigned WindowPossitionHeight=100;
-
-	gluOrtho2D(0, 100, 100, 0);
-	glutInitDisplayMode(GLUT_SINGLE|GLUT_RGBA|GLUT_DOUBLE);
-	glutInitWindowPosition(WindowPossitionWight, WindowPossitionHeight);
-	glutInitWindowSize(WindowSizeWight, WindowSizeHeight);
-
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-
-	snakeInits();
-}
-
 Search::Search(){
 	this->inits();
 }
@@ -154,18 +133,14 @@ void Search::printField() const{
 
 int Search::search(){
 	std::queue<point> q;
-	
-	
 	q.push(this->start);
 	while(!q.empty()){
 		point cur=q.front();		
-		//		std::cout<<"cur("<<cur.first<<","<<cur.second<<")"<<std::endl;
 		q.pop();
 		if(cur==this->goal)
 			return this->memo[cur.first][cur.second];
 		std::for_each(this->dir.begin(), this->dir.end(), [&, this](auto obj){
 				point next=cur+obj;
-				//				std::cout<<"next("<<next.first<<","<<next.second<<")"<<std::endl;
 				if(this->isOutField(next)){
 					const unsigned state=this->field[next.first][next.second];
 					if(state==ROAD){
