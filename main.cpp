@@ -151,11 +151,15 @@ void Search::printField() const{
 		for(int j=0;j<this->wight();j++){
 			val=std::make_pair(j, i);
 			if(val==this->start){
+				std::cout<<"\x1b[34m";
 				std::cout<<"Ｓ";
+				std::cout<<"\x1b[39m";
 				continue;
 			}
 			if(val==this->goal){
+				std::cout<<"\x1b[34m";				
 				std::cout<<"Ｇ";
+				std::cout<<"\x1b[39m";				
 				continue;
 			}
 			switch(unsigned state=this->field.at(i).at(j)){
@@ -189,19 +193,34 @@ void Search::printRoad() const{
 		for(int j=0;j<this->wight();j++){
 			coord=std::make_pair(i, j);
 			if(coord==this->start){
+				std::cout<<"\x1b[34m";
 				std::cout<<"Ｓ";
+				std::cout<<"\x1b[39m";
 				continue;
 			}
 			if(coord==this->goal){
+				std::cout<<"\x1b[34m";
 				std::cout<<"Ｇ";
+				std::cout<<"\x1b[39m";
 				continue;
 			}
 			auto val=std::find(road.begin(), road.end(), coord);
 			if(val!=road.end()){
+				std::cout<<"\x1b[31m";
 				std::cout<<"＠";
+				std::cout<<"\x1b[39m";
 				continue;
 			}
-			std::cout<<"　";
+			switch(unsigned state=this->field.at(i).at(j)){
+			case ROAD:
+				std::cout<<"　";
+				break;
+			case WALL:
+				std::cout<<"＊";
+				break;
+			default:
+				break;
+			}
 		}
 		std::cout<<std::endl;
 	}
