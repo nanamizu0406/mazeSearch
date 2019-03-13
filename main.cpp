@@ -4,8 +4,10 @@
 #include<stack>
 #include<queue>
 #include<chrono>
+#include<thread>
 #include<GL/glut.h>
 
+const unsigned cellSize=20;
 using point=std::pair<unsigned, unsigned>;
 
 point operator+(const point &lhs, const point &rhs)
@@ -58,19 +60,31 @@ public:
 	Search();
 	~Search();
 	void printField() const;
-	int search();
+	int wightSearch();
+	int heightSearch();
 }search;
 
 int main(int argc, char* argv[]){
 	search.printField();
-		
-	auto start=std::chrono::system_clock::now();
 
-	unsigned num=search.search();
-	std::cout<<num<<std::endl;
-	
-	auto end=std::chrono::system_clock::now(); 
-	double val=std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	double val;
+	unsigned num=0;
+	std::chrono::system_clock::time_point  start, end; 
+
+	//幅優先探索
+	start=std::chrono::system_clock::now();
+	num=search.wightSearch();
+	std::cout<<num<<"distance"<<std::endl;
+	end=std::chrono::system_clock::now(); 
+	val=std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	std::cout<<val<<"micro"<<std::endl;
+
+	//深さ優先探索
+	start=std::chrono::system_clock::now();
+	num=search.heightSearch();
+	std::cout<<num<<"distance"<<std::endl;
+	end=std::chrono::system_clock::now(); 
+	val=std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	std::cout<<val<<"micro"<<std::endl;
 
 	return 0;
@@ -78,6 +92,8 @@ int main(int argc, char* argv[]){
 
 Search::Search(){
 	this->inits();
+	std::cout<<"start("<<this->start.first<<","<<this->start.second<<")"<<std::endl;
+	std::cout<<"goal("<<this->goal.first<<","<<this->goal.second<<")"<<std::endl;
 }
 
 Search::~Search(){
@@ -89,16 +105,14 @@ void Search::inits(){
 	this->start=std::make_pair(1, 1);
 	this->goal=std::make_pair(this->wight()-2, this->height()-2);
 
+	this->memo.clear();
 	this->memo.resize(this->height());
 	std::for_each(this->memo.begin(), this->memo.end(), [this](auto& vec){
 			vec.resize(this->wight());
 		});
 	std::for_each(this->memo.begin(), this->memo.end(), [](auto& vec){
 			std::fill(vec.begin(), vec.end(), 0);
-		});
-	
-	std::cout<<"start("<<this->start.first<<","<<this->start.second<<")"<<std::endl;
-	std::cout<<"goal("<<this->goal.first<<","<<this->goal.second<<")"<<std::endl;
+		});	
 }
 
 unsigned Search::wight()const {
@@ -131,8 +145,14 @@ void Search::printField() const{
 		});
 }
 
-int Search::search(){
+
+int Search::wightSearch(){
+	//幅優先探索
+	static const double val=cellSize/2;
+	static const unsigned pointSize=19;
+	
 	std::queue<point> q;
+	
 	q.push(this->start);
 	while(!q.empty()){
 		point cur=q.front();		
@@ -144,15 +164,41 @@ int Search::search(){
 				if(this->isOutField(next)){
 					const unsigned state=this->field[next.first][next.second];
 					if(state==ROAD){
-						if(this->memo[next.first][next.second]==0){
+						if(this->memo[next.first][next.second]==0){							
 							q.push(next);
+							this->memo[next.first][next.second]=this->memo[cur.first][cur.second]+1;
+						}
+					}
+				}
+			});
+	}	
+	return false;
+}
+
+int Search::heightSearch(){
+	this->inits();
+	//深さ優先探索
+	std::stack<point> s;
+	
+	s.push(this->start);
+	while(!s.empty()){
+		point cur=s.top();		
+		s.pop();
+		if(cur==this->goal)
+			return this->memo[cur.first][cur.second];
+		std::for_each(this->dir.begin(), this->dir.end(), [&, this](auto obj){
+				point next=cur+obj;
+				if(this->isOutField(next)){
+					const unsigned state=this->field[next.first][next.second];
+					if(state==ROAD){
+						if(this->memo[next.first][next.second]==0){
+							s.push(next);
 							this->memo[next.first][next.second]=this->memo[cur.first][cur.second]+1;
 						}
 					}
 				}				
 			});
 	}	
-	return false;
+	return false;	
 }
-
 
